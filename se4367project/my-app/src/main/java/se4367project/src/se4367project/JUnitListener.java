@@ -3,7 +3,7 @@ package se4367project;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
 import org.junit.runner.notification.RunListener;
-
+import se4367project.CollectCoverage;
 import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,32 +11,47 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 public class JUnitListener extends RunListener {
-	static FileWriter writer;
+	private static FileWriter fw;
+	private static StringBuffer sb;	
 
-	public void testRunStarted(Description description) throws java.lang.Exception {
-		try {
-			File fileGenerated = new File("stmt-cov.txt");
-			if (fileGenerated.exists()) {
-				fileGenerated.delete();
-			} else {
-				fileGenerated.createNewFile();
-			}
-			writer = new FileWriter("stmt-cov.txt", false);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+    public void testRunStarted(Description description) throws Exception {
+        CollectCoverage.suiteInfo = new HashMap<String,HashMap<String,HashSet<Integer>>>();
+    }
+    
+    public void testRunFinished(Result result) throws Exception {
+		writeIntoFile(fw);
+		System.out.println("Test run finished!");
+    }
 
-		}
-	}
+    public void testStarted(Description description) throws Exception {
+        CollectCoverage.testName = "[TEST] " + description.getClassName() + ":" + description.getMethodName() + "\n" ;
+        CollectCoverage.cases = new HashMap<String,HashSet<Integer>>();
+    }
 
-	public void testRunFinished(Result result) throws java.lang.Exception {
-		writer.close();
-	}
+    public void testFinished(Description description) throws Exception {
+        CollectCoverage.suiteInfo.put(CollectCoverage.testName, CollectCoverage.cases);
+    }
 
-	public void testFinished(Description description) throws java.lang.Exception {
-		CollectCoverage.writeIntoFile(writer);
-	}
-
-	public void testStarted(Description description) throws java.lang.Exception {
-		writer.write("[TEST] " + description.getClassName() + ": " + description.getMethodName() + " " + System.lineSeparator());
-	}
+	 public static void writeIntoFile(FileWriter writer)throws Exception {
+        try {
+			fw = new FileWriter("stmt-cov.txt",true);
+			sb = new StringBuffer();
+            for (String caseNames : CollectCoverage.suiteInfo.keySet())
+            {
+                sb.append(caseNames);
+                HashMap<String, HashSet<Integer>> coverage = CollectCoverage.suiteInfo.get(caseNames);
+                for (String cName : coverage.keySet())
+                {
+                	HashSet<Integer> values = coverage.get(cName);
+                	for (Integer i : values) {
+                		sb.append(cName + ":" + i + "\n");
+                	}
+                }
+            }
+		fw.write(sb.toString());
+		fw.close();
+        } catch (IOException ex) {
+			System.out.println("error");
+        }
+	 }
 }
